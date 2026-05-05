@@ -1,23 +1,30 @@
 import streamlit as st
 from database import get_conn
 
-def login():
-    st.title("Login")
 
-    user = st.text_input("Username")
-    pw = st.text_input("Password", type="password")
+def login():
+    st.title("UltraCoach Login")
+
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
 
     if st.button("Entrar"):
         conn = get_conn()
         c = conn.cursor()
 
-        c.execute("SELECT * FROM users WHERE username=? AND password=?", (user, pw))
-        res = c.fetchone()
+        c.execute("""
+        SELECT id, role FROM users
+        WHERE username=? AND password=?
+        """, (username, password))
 
-        if res:
-            st.session_state["user_id"] = res[0]
-            st.session_state["role"] = res[3]
-            st.success("Login OK")
+        user = c.fetchone()
+
+        if user:
+            st.session_state["user_id"] = user[0]
+            st.session_state["role"] = user[1]
+
+            # admin pode selecionar atleta depois
+            st.success("Login efetuado")
             st.rerun()
         else:
             st.error("Credenciais inválidas")
