@@ -8,26 +8,58 @@ from pages.plano import plano_page
 from pages.admin import admin_page
 
 
-# INIT DB
+# =========================
+# INIT
+# =========================
 init_db()
 
-# LOGIN
+
+# =========================
+# LOGOUT FUNCTION
+# =========================
+def logout():
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
+    st.rerun()
+
+
+# =========================
+# LOGIN FLOW
+# =========================
 if "user_id" not in st.session_state:
     login()
     st.stop()
 
+
 role = st.session_state["role"]
 user_id = st.session_state["user_id"]
 
-st.sidebar.title("Menu")
 
-menu = st.sidebar.selectbox("Navegação", [
-    "Perfil",
-    "Objetivos",
-    "Plano"
-] + (["Admin"] if role == "admin" else []))
+# =========================
+# SIDEBAR
+# =========================
+st.sidebar.title("UltraCoach")
 
+st.sidebar.write(f"User ID: {user_id}")
+st.sidebar.write(f"Role: {role}")
+
+# 👉 BOTÃO DE LOGOUT
+if st.sidebar.button("Logout"):
+    logout()
+
+
+# =========================
+# MENU
+# =========================
+menu = st.sidebar.selectbox(
+    "Navegação",
+    ["Perfil", "Objetivos", "Plano"] + (["Admin"] if role == "admin" else [])
+)
+
+
+# =========================
 # ROUTING
+# =========================
 if menu == "Perfil":
     perfil_page(user_id)
 
