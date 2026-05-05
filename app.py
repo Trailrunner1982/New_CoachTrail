@@ -1,13 +1,17 @@
 import streamlit as st
 from database import init_db
 from auth import login
+
 from pages.perfil import perfil_page
 from pages.objetivos import objetivos_page
 from pages.plano import plano_page
 from pages.admin import admin_page
 
+
+# INIT DB
 init_db()
 
+# LOGIN
 if "user_id" not in st.session_state:
     login()
     st.stop()
@@ -15,13 +19,15 @@ if "user_id" not in st.session_state:
 role = st.session_state["role"]
 user_id = st.session_state["user_id"]
 
-menu = st.sidebar.selectbox("Menu", [
+st.sidebar.title("Menu")
+
+menu = st.sidebar.selectbox("Navegação", [
     "Perfil",
     "Objetivos",
-    "Plano",
-    "Admin"
-])
+    "Plano"
+] + (["Admin"] if role == "admin" else []))
 
+# ROUTING
 if menu == "Perfil":
     perfil_page(user_id)
 
