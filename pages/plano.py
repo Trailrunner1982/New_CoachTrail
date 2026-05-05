@@ -1,6 +1,8 @@
 import streamlit as st
 from database import get_conn
 from treino_engine import gerar_plano
+from services.recomendador import obter_recomendacoes
+
 
 def plano_page(user_id):
 
@@ -9,7 +11,7 @@ def plano_page(user_id):
     conn = get_conn()
     c = conn.cursor()
 
-    # user
+    # USER
     c.execute("SELECT * FROM users WHERE id=?", (user_id,))
     u = c.fetchone()
 
@@ -17,13 +19,13 @@ def plano_page(user_id):
         "id": u[0],
         "fc_max": u[5],
         "fc_repouso": u[6],
-        "dias_treino": list(map(int, u[7].split(","))),
+        "dias_treino": list(map(int, u[7].split(","))) if u[7] else [],
         "dia_longo": u[8],
-        "volume_atual_horas": u[9],
+        "volume_atual_horas": u[9] or 3,
         "nivel": "intermedio"
     }
 
-    # objetivo A
+    # OBJETIVO
     c.execute("""
     SELECT * FROM objetivos
     WHERE user_id=? AND prioridade='A'
@@ -32,7 +34,7 @@ def plano_page(user_id):
     obj = c.fetchone()
 
     if not obj:
-        st.warning("Sem objetivo A")
+        st.warning("Define um objetivo primeiro")
         return
 
     objetivo = {
@@ -41,11 +43,11 @@ def plano_page(user_id):
         "dplus": obj[5]
     }
 
+    # GERAR PLANO
     if st.button("Gerar plano"):
         plano = gerar_plano(user, objetivo, historico=[])
 
-        # guardar
-        for semana in plano:
+        for semana in plano["plano"]:
             for t in semana["treinos"]:
                 c.execute("""
                 INSERT INTO plano (user_id, data, tipo, duracao, descricao, status)
@@ -62,9 +64,28 @@ def plano_page(user_id):
         conn.commit()
         st.success("Plano gerado")
 
-    # mostrar plano
+    # MOSTRAR
     c.execute("SELECT * FROM plano WHERE user_id=?", (user_id,))
     dados = c.fetchall()
 
     for d in dados:
-        st.write(d)
+        st.subheader(f"Treino: {d[3]}")
+        st.write(f"Duração: {d[4]}h")
+        st.write(f"Zonas: {d[5]}")
+
+        # 🔥 RECOMENDAÇÕES
+        treino_fake = {
+            "tipo": d[3],
+            "forca": "forca" in d[5]
+        }
+
+        recs = obter_recomendacoes(treino_fake)
+
+        if recs:
+            st.write("💡 Recomendações:")
+            for r in recs:
+                st.write(f"- {r['titulo']}")
+                if "link" in r:
+                    st.video(r["link"])
+
+        st.write("---")
