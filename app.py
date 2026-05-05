@@ -3,54 +3,58 @@ from database import init_db
 from auth import login
 
 from pages.perfil import perfil_page
+from pages.treino import treino_page
+from pages.metricas import metricas_page
 from pages.objetivos import objetivos_page
 from pages.plano import plano_page
-from pages.admin import admin_page
 from pages.biblioteca import biblioteca_page
+from pages.admin import admin_page
 
 
-# INIT DB
 init_db()
 
 
 def logout():
-    for key in list(st.session_state.keys()):
-        del st.session_state[key]
+    for k in list(st.session_state.keys()):
+        del st.session_state[k]
     st.rerun()
 
 
-# =========================
-# LOGIN FIRST (SEM SIDEBAR)
-# =========================
+# LOGIN
 if "user_id" not in st.session_state:
-    st.set_page_config(layout="centered")
     login()
     st.stop()
 
 
-# =========================
-# APP NORMAL (COM SIDEBAR)
-# =========================
-st.set_page_config(layout="wide")
-
 role = st.session_state["role"]
 user_id = st.session_state["user_id"]
 
-# SIDEBAR
-st.sidebar.title("UltraCoach")
+
+# SIDEBAR (FINAL)
+menu = st.sidebar.radio("Menu", [
+    "Dashboard",
+    "Perfil",
+    "Treino",
+    "Métricas",
+    "Objetivos",
+    "Plano",
+    "Biblioteca"
+] + (["Admin"] if role == "admin" else []))
+
 
 if st.sidebar.button("Logout"):
     logout()
 
-menu = st.sidebar.selectbox(
-    "Menu",
-    ["Perfil", "Objetivos", "Plano", "Biblioteca"] +
-    (["Admin"] if role == "admin" else [])
-)
 
-# ROUTING
+# ROUTES
 if menu == "Perfil":
     perfil_page(user_id)
+
+elif menu == "Treino":
+    treino_page(user_id)
+
+elif menu == "Métricas":
+    metricas_page(user_id)
 
 elif menu == "Objetivos":
     objetivos_page(user_id)
