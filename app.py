@@ -9,7 +9,7 @@ from pages.admin import admin_page
 from pages.biblioteca import biblioteca_page
 
 
-# INIT
+# INIT DB
 init_db()
 
 
@@ -19,15 +19,22 @@ def logout():
     st.rerun()
 
 
-# LOGIN
+# =========================
+# LOGIN FIRST (SEM SIDEBAR)
+# =========================
 if "user_id" not in st.session_state:
+    st.set_page_config(layout="centered")
     login()
     st.stop()
 
 
+# =========================
+# APP NORMAL (COM SIDEBAR)
+# =========================
+st.set_page_config(layout="wide")
+
 role = st.session_state["role"]
 user_id = st.session_state["user_id"]
-
 
 # SIDEBAR
 st.sidebar.title("UltraCoach")
@@ -35,13 +42,11 @@ st.sidebar.title("UltraCoach")
 if st.sidebar.button("Logout"):
     logout()
 
-
 menu = st.sidebar.selectbox(
     "Menu",
     ["Perfil", "Objetivos", "Plano", "Biblioteca"] +
     (["Admin"] if role == "admin" else [])
 )
-
 
 # ROUTING
 if menu == "Perfil":
