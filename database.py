@@ -53,11 +53,20 @@ def init_db():
     )
     """)
 
-    # ✅ Criar admin apenas se não existir
-    c.execute("SELECT * FROM users WHERE username=?", ("Treller2026",))
-    admin = c.fetchone()
+    # 📚 BIBLIOTECA GLOBAL
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS biblioteca (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        titulo TEXT,
+        tipo TEXT,   -- video / artigo
+        link TEXT,
+        descricao TEXT
+    )
+    """)
 
-    if not admin:
+    # ADMIN DEFAULT
+    c.execute("SELECT * FROM users WHERE username=?", ("Treller2026",))
+    if not c.fetchone():
         c.execute("""
         INSERT INTO users (username, password, role)
         VALUES (?, ?, ?)
