@@ -11,23 +11,64 @@ def init_db():
     conn = get_conn()
     c = conn.cursor()
 
-    # USERS
+    # =====================
+    # USERS (LOGIN)
+    # =====================
     c.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE,
         password TEXT,
-        role TEXT,
-        nome TEXT,
-        fc_max INTEGER,
-        fc_repouso INTEGER,
-        dias_treino TEXT,
-        dia_longo INTEGER,
-        volume_horas REAL
+        role TEXT
     )
     """)
 
+    # =====================
+    # PERFIL PESSOAL
+    # =====================
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS perfil (
+        user_id INTEGER PRIMARY KEY,
+        nome TEXT,
+        data_nascimento TEXT,
+        altura REAL,
+        peso REAL
+    )
+    """)
+
+    # =====================
+    # CONFIG TREINO
+    # =====================
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS treino_config (
+        user_id INTEGER PRIMARY KEY,
+        dias_treino TEXT,
+        dia_longo INTEGER,
+        volume_km REAL,
+        volume_horas REAL,
+        preferencia TEXT
+    )
+    """)
+
+    # =====================
+    # MÉTRICAS DIÁRIAS
+    # =====================
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS metricas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        data TEXT,
+        hrv REAL,
+        rhr REAL,
+        sleep REAL,
+        body_battery REAL,
+        vo2 REAL
+    )
+    """)
+
+    # =====================
     # OBJETIVOS
+    # =====================
     c.execute("""
     CREATE TABLE IF NOT EXISTS objetivos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -36,11 +77,14 @@ def init_db():
         data TEXT,
         distancia REAL,
         dplus REAL,
+        tempo_objetivo TEXT,
         prioridade TEXT
     )
     """)
 
+    # =====================
     # PLANO
+    # =====================
     c.execute("""
     CREATE TABLE IF NOT EXISTS plano (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -53,12 +97,14 @@ def init_db():
     )
     """)
 
-    # 📚 BIBLIOTECA GLOBAL
+    # =====================
+    # BIBLIOTECA
+    # =====================
     c.execute("""
     CREATE TABLE IF NOT EXISTS biblioteca (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         titulo TEXT,
-        tipo TEXT,   -- video / artigo
+        tipo TEXT,
         link TEXT,
         descricao TEXT
     )
