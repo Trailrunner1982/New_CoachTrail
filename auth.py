@@ -12,19 +12,13 @@ def login():
         conn = get_conn()
         c = conn.cursor()
 
-        c.execute("""
-        SELECT id, role FROM users
-        WHERE username=? AND password=?
-        """, (username, password))
-
+        c.execute("SELECT * FROM users WHERE username=? AND password=?",
+                  (username, password))
         user = c.fetchone()
 
         if user:
             st.session_state["user_id"] = user[0]
-            st.session_state["role"] = user[1]
-
-            # admin pode selecionar atleta depois
-            st.success("Login efetuado")
+            st.session_state["role"] = user[3]
             st.rerun()
         else:
             st.error("Credenciais inválidas")
