@@ -11,7 +11,9 @@ def render_dashboard(user_id):
 
     hoje = str(datetime.date.today())
 
-    # 🔥 MÉTRICAS HOJE
+    # =========================
+    # MÉTRICAS
+    # =========================
     c.execute("""
     SELECT hrv, rhr FROM metricas
     WHERE user_id=? AND data=?
@@ -20,35 +22,40 @@ def render_dashboard(user_id):
 
     if m:
         hrv, rhr = m
-        if hrv > 60:
-            estado = "🟢 Pronto para treinar"
-        elif hrv > 45:
-            estado = "🟡 Treino moderado"
-        else:
-            estado = "🔴 Recuperação necessária"
 
-        st.metric("Estado", estado)
+        if hrv > 60:
+            estado = "🟢 Pronto"
+            cor = "green"
+        elif hrv > 45:
+            estado = "🟡 Moderado"
+            cor = "yellow"
+        else:
+            estado = "🔴 Recuperação"
+            cor = "red"
+
+        st.markdown(f"""
+        <div class="card {cor}">
+        <h3>Estado</h3>
+        <p>{estado}</p>
+        </div>
+        """, unsafe_allow_html=True)
+
     else:
         st.warning("Sem métricas hoje")
 
-    # 🔥 TREINO DO DIA
+    # =========================
+    # TREINO HOJE
+    # =========================
     c.execute("""
-    SELECT descricao, status FROM plano
+    SELECT descricao FROM plano
     WHERE user_id=? AND data=?
     """, (user_id, hoje))
     treino = c.fetchone()
 
     if treino:
         st.subheader("Treino de Hoje")
-        st.write(treino[0])
-
-    # 🔥 CONSISTÊNCIA
-    c.execute("SELECT COUNT(*) FROM plano WHERE user_id=?", (user_id,))
-    total = c.fetchone()[0]
-
-    c.execute("SELECT COUNT(*) FROM plano WHERE user_id=? AND status='feito'", (user_id,))
-    feitos = c.fetchone()[0]
-
-    if total > 0:
-        perc = int((feitos / total) * 100)
-        st.metric("Consistência", f"{perc}%")
+        st.markdown(f"""
+        <div class="card blue">
+        {treino[0]}
+        </div>
+        """, unsafe_allow_html=True)
