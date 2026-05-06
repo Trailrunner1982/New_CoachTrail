@@ -1,6 +1,8 @@
 import streamlit as st
 
 from database import init_db
+
+init_db()
 from auth import login
 
 from modules.dashboard import render_dashboard
