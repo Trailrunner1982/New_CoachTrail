@@ -1,7 +1,9 @@
 import streamlit as st
+
 from database import init_db
 from auth import login
 
+from modules.dashboard import render_dashboard
 from modules.perfil import render_perfil
 from modules.treino_config import render_treino
 from modules.objetivos import render_objetivos
@@ -12,6 +14,14 @@ from modules.biblioteca import render_biblioteca
 from modules.admin import render_admin
 
 
+# =========================
+# INIT
+# =========================
+st.set_page_config(
+    page_title="UltraCoach",
+    layout="centered"  # mobile friendly
+)
+
 init_db()
 
 
@@ -20,52 +30,69 @@ def logout():
     st.rerun()
 
 
+# =========================
 # LOGIN
+# =========================
 if "user_id" not in st.session_state:
     login()
     st.stop()
 
-
-role = st.session_state["role"]
 user_id = st.session_state["user_id"]
+role = st.session_state["role"]
 
 
-# SIDEBAR
-if role == "admin":
-    menu = st.sidebar.radio("Menu", ["Atletas", "Biblioteca"])
-else:
-    menu = st.sidebar.radio("Menu", [
-        "Dashboard",
-        "Perfil",
-        "Treino",
-        "Objetivos",
-        "Métricas",
-        "Plano",
-        "Treinos Realizados",
-        "Biblioteca"
-    ])
+# =========================
+# SIDEBAR (SÓ APÓS LOGIN)
+# =========================
+with st.sidebar:
+    st.title("UltraCoach")
 
-if st.sidebar.button("Logout"):
-    logout()
+    if role == "admin":
+        menu = st.radio("Menu", ["Atletas", "Biblioteca"])
+    else:
+        menu = st.radio("Menu", [
+            "Dashboard",
+            "Perfil",
+            "Treino",
+            "Objetivos",
+            "Métricas",
+            "Plano",
+            "Treinos Realizados",
+            "Biblioteca"
+        ])
+
+    st.divider()
+    if st.button("Logout", use_container_width=True):
+        logout()
 
 
+# =========================
 # ROUTING
+# =========================
 if role == "admin":
     render_admin(menu)
+
 else:
-    if menu == "Perfil":
+    if menu == "Dashboard":
+        render_dashboard(user_id)
+
+    elif menu == "Perfil":
         render_perfil(user_id)
+
     elif menu == "Treino":
         render_treino(user_id)
+
     elif menu == "Objetivos":
         render_objetivos(user_id)
+
     elif menu == "Métricas":
         render_metricas(user_id)
+
     elif menu == "Plano":
         render_plano(user_id)
+
     elif menu == "Treinos Realizados":
         render_treinos(user_id)
+
     elif menu == "Biblioteca":
         render_biblioteca()
-    else:
-        st.write("Dashboard em construção")
