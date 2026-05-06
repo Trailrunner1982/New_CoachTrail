@@ -19,6 +19,14 @@ def init_db():
     )
     """)
 
+    # ADMIN DEFAULT
+    c.execute("SELECT * FROM users WHERE username='admin'")
+    if not c.fetchone():
+        c.execute("""
+        INSERT INTO users (username, password, role)
+        VALUES ('admin', 'admin123', 'admin')
+        """)
+
     # READINESS
     c.execute("""
     CREATE TABLE IF NOT EXISTS readiness (
@@ -41,7 +49,7 @@ def init_db():
     )
     """)
 
-    # WORKOUTS (PLANEADO + REAL)
+    # WORKOUTS
     c.execute("""
     CREATE TABLE IF NOT EXISTS workouts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
