@@ -1,61 +1,89 @@
 import streamlit as st
 from database import get_conn
-import datetime
+from engine import calcular_readiness, gerar_treino, calcular_load, calcular_preparation
+from datetime import date
 
 
 def render_dashboard(user_id):
-    st.title("Dashboard")
+
+    st.title("Dashboard Diário")
 
     conn = get_conn()
     c = conn.cursor()
 
-    hoje = str(datetime.date.today())
+    hoje = date.today().isoformat()
 
     # =========================
-    # MÉTRICAS
+    # CHECK-IN
     # =========================
-    c.execute("""
-    SELECT hrv, rhr FROM metricas
-    WHERE user_id=? AND data=?
-    """, (user_id, hoje))
-    m = c.fetchone()
+    st.subheader("Check-in Diário")
 
-    if m:
-        hrv, rhr = m
+    rpe = st.slider("RPE ontem", 1, 10, 5)
+    sleep = st.slider("Qualidade do sono", 1, 10, 7)
+    fatigue = st.slider("Fadiga", 1, 10, 5)
 
-        if hrv > 60:
-            estado = "🟢 Pronto"
-            cor = "green"
-        elif hrv > 45:
-            estado = "🟡 Moderado"
-            cor = "yellow"
-        else:
-            estado = "🔴 Recuperação"
-            cor = "red"
+    if st.button("Gerar Treino Hoje"):
 
-        st.markdown(f"""
-        <div class="card {cor}">
-        <h3>Estado</h3>
-        <p>{estado}</p>
-        </div>
-        """, unsafe_allow_html=True)
+        readiness, status = calcular_readiness(rpe, sleep, fatigue)
 
-    else:
-        st.warning("Sem métricas hoje")
+        treino = gerar_treino(readiness)
+
+        load = calcular_load(treino["duration"], treino["elevation"])
+
+        # guardar readiness
+        c.execute("""
+        INSERT INTO readiness (user_id, date, score, status)
+        VALUES (?, ?, ?, ?)
+        """, (user_id, hoje, readiness, status))
+
+        # guardar treino
+        c.execute("""
+        INSERT INTO workouts (user_id, date, type, planned_load, completed)
+        VALUES (?, ?, ?, ?, 0)
+        """, (user_id, hoje, treino["type"], load))
+
+        conn.commit()
+
+        st.session_state["treino"] = treino
+        st.session_state["readiness"] = readiness
+        st.session_state["status"] = status
 
     # =========================
-    # TREINO HOJE
+    # OUTPUT
     # =========================
-    c.execute("""
-    SELECT descricao FROM plano
-    WHERE user_id=? AND data=?
-    """, (user_id, hoje))
-    treino = c.fetchone()
+    if "treino" in st.session_state:
 
-    if treino:
-        st.subheader("Treino de Hoje")
-        st.markdown(f"""
-        <div class="card blue">
-        {treino[0]}
-        </div>
-        """, unsafe_allow_html=True)
+        st.subheader("Hoje")
+
+        st.metric("Readiness", st.session_state["readiness"])
+
+        st.info(st.session_state["status"])
+
+        treino = st.session_state["treino"]
+
+        st.success(f"""
+Tipo: {treino['type']}
+
+{treino['desc']}
+""")
+
+        if st.button("✔ Concluir treino"):
+
+            c.execute("""
+            UPDATE workouts
+            SET completed=1
+            WHERE user_id=? AND date=?
+            """, (user_id, hoje))
+
+            conn.commit()
+            st.success("Treino registado")
+
+    # =========================
+    # PROGRESSO
+    # =========================
+    prep = calcular_preparation(conn, user_id)
+
+    st.subheader("Preparação")
+
+    st.progress(prep / 100)
+    st.write(f"{prep}% preparado")
