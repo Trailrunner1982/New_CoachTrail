@@ -1,6 +1,5 @@
 import streamlit as st
 from database import get_conn
-import pandas as pd
 from datetime import date
 
 
@@ -11,27 +10,31 @@ def render_treinos(user_id):
     c = conn.cursor()
 
     data = st.date_input("Data", date.today())
-    tipo = st.selectbox("Tipo", ["trail", "corrida", "bike", "caminhada"])
+    tipo = st.selectbox("Tipo", ["Trail", "Corrida", "Bike"])
     dist = st.number_input("Distância (km)")
     dur = st.number_input("Duração (min)")
-    fc = st.number_input("FC média")
 
-    if st.button("Guardar", use_container_width=True):
+    if st.button("Guardar"):
         c.execute("""
-        INSERT INTO treinos (user_id, data, tipo, distancia, duracao, fc)
-        VALUES (?, ?, ?, ?, ?, ?)
-        """, (user_id, str(data), tipo, dist, dur, fc))
+        INSERT INTO treinos (user_id, data, tipo, distancia, duracao)
+        VALUES (?, ?, ?, ?, ?)
+        """, (user_id, str(data), tipo, dist, dur))
         conn.commit()
-        st.success("Guardado")
 
-    # 🔥 TABELA
+    st.divider()
+
     c.execute("""
-    SELECT data, tipo, distancia, duracao, fc
+    SELECT data, tipo, distancia, duracao
     FROM treinos WHERE user_id=?
     ORDER BY data DESC
     """, (user_id,))
     rows = c.fetchall()
 
-    if rows:
-        df = pd.DataFrame(rows, columns=["Data", "Tipo", "Distância", "Duração", "FC"])
-        st.dataframe(df, use_container_width=True)
+    for r in rows:
+        with st.container():
+            st.markdown(f"""
+### 🏃 {r[1]}  
+📅 {r[0]}  
+📏 {r[2]} km | ⏱ {r[3]} min
+""")
+            st.divider()
