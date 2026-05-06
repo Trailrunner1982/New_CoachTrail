@@ -1,10 +1,8 @@
 import sqlite3
 
-DB = "ultracoach.db"
-
 
 def get_conn():
-    return sqlite3.connect(DB, check_same_thread=False)
+    return sqlite3.connect("ultra.db", check_same_thread=False)
 
 
 def init_db():
@@ -15,7 +13,7 @@ def init_db():
     c.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE,
+        username TEXT,
         password TEXT,
         role TEXT
     )
@@ -26,14 +24,17 @@ def init_db():
     CREATE TABLE IF NOT EXISTS perfil (
         user_id INTEGER PRIMARY KEY,
         nome TEXT,
-        data_nascimento TEXT,
-        altura REAL
+        nascimento TEXT,
+        altura REAL,
+        peso REAL,
+        fc_max INTEGER,
+        fc_repouso INTEGER
     )
     """)
 
-    # PESO HISTÓRICO
+    # PESO HISTORICO
     c.execute("""
-    CREATE TABLE IF NOT EXISTS peso (
+    CREATE TABLE IF NOT EXISTS peso_log (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
         data TEXT,
@@ -41,16 +42,34 @@ def init_db():
     )
     """)
 
-    # TREINO CONFIG
+    # TREINOS REALIZADOS
     c.execute("""
-    CREATE TABLE IF NOT EXISTS treino_config (
-        user_id INTEGER PRIMARY KEY,
-        dias TEXT,
-        dia_longo TEXT,
-        volume_km REAL,
+    CREATE TABLE IF NOT EXISTS treinos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        data TEXT,
+        tipo TEXT,
+        distancia REAL,
+        duracao TEXT,
         pace REAL,
-        forca INTEGER,
-        forca_dias TEXT
+        altimetria REAL,
+        fc_media INTEGER,
+        fc_max INTEGER,
+        rpe INTEGER,
+        notas TEXT
+    )
+    """)
+
+    # MÉTRICAS
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS metricas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        data TEXT,
+        hrv REAL,
+        rhr INTEGER,
+        sleep REAL,
+        body REAL
     )
     """)
 
@@ -62,23 +81,8 @@ def init_db():
         nome TEXT,
         data TEXT,
         distancia REAL,
-        dplus REAL,
-        tempo TEXT,
+        altimetria REAL,
         prioridade TEXT
-    )
-    """)
-
-    # MÉTRICAS
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS metricas (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        data TEXT,
-        hrv REAL,
-        rhr REAL,
-        sleep REAL,
-        body REAL,
-        vo2 REAL
     )
     """)
 
@@ -94,39 +98,4 @@ def init_db():
     )
     """)
 
-    # TREINOS REALIZADOS
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS treinos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        data TEXT,
-        tipo TEXT,
-        distancia REAL,
-        duracao REAL,
-        pace REAL,
-        fc REAL,
-        dplus REAL,
-        notas TEXT
-    )
-    """)
-
-    # BIBLIOTECA
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS biblioteca (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        titulo TEXT,
-        link TEXT,
-        descricao TEXT
-    )
-    """)
-
-    # ADMIN
-    c.execute("SELECT * FROM users WHERE username=?", ("Treller2026",))
-    if not c.fetchone():
-        c.execute("""
-        INSERT INTO users (username, password, role)
-        VALUES (?, ?, ?)
-        """, ("Treller2026", "trail2026", "admin"))
-
     conn.commit()
-    conn.close()
