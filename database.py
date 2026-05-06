@@ -13,7 +13,7 @@ def init_db():
     c.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT,
+        username TEXT UNIQUE,
         password TEXT,
         role TEXT
     )
@@ -27,10 +27,21 @@ def init_db():
         VALUES ('admin', 'admin123', 'admin')
         """)
 
+    # PERFIL
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS perfil (
+        user_id INTEGER,
+        nome TEXT,
+        nascimento TEXT,
+        altura REAL,
+        peso REAL,
+        fc_max INTEGER
+    )
+    """)
+
     # READINESS
     c.execute("""
     CREATE TABLE IF NOT EXISTS readiness (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
         date TEXT,
         score INTEGER,
@@ -38,29 +49,28 @@ def init_db():
     )
     """)
 
-    # RACE
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS race (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        date TEXT,
-        distance_km REAL,
-        elevation_m REAL
-    )
-    """)
-
     # WORKOUTS
     c.execute("""
     CREATE TABLE IF NOT EXISTS workouts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
         date TEXT,
         type TEXT,
         planned_load REAL,
         actual_load REAL,
         completed INTEGER,
-        rpe_post INTEGER,
-        notes TEXT
+        rpe_post INTEGER
+    )
+    """)
+
+    # OBJECTIVOS
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS objetivos (
+        user_id INTEGER,
+        nome TEXT,
+        data TEXT,
+        distancia REAL,
+        elevacao REAL,
+        prioridade TEXT
     )
     """)
 
