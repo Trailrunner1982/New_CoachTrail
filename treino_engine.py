@@ -1,101 +1,114 @@
 from datetime import timedelta
-import random
 
 
-def gerar_treino(volume, tipo):
+def definir_fase(dias_totais, dia_atual):
 
-    if tipo == "easy":
-        dist = round(volume * 0.15, 1)
-        return {
-            "tipo": "Easy Run",
-            "cor": "green",
-            "descricao": f"""
-🏃 Easy Run
+    pct = dia_atual / dias_totais
 
-Distância: {dist} km  
-Duração: {dist*6:.0f} min  
-Pace: confortável  
+    if pct < 0.4:
+        return "base"
+    elif pct < 0.75:
+        return "build"
+    elif pct < 0.9:
+        return "peak"
+    else:
+        return "taper"
 
-Zona: Z2  
 
-🎯 Recuperação ativa
+def treino_por_fase(volume, fase):
+
+    if fase == "base":
+        return [
+            ("Easy Run", f"{round(volume*0.2)} km Z2"),
+            ("Força", "Treino funcional"),
+            ("Easy Run", f"{round(volume*0.15)} km Z2"),
+            ("Descanso", ""),
+            ("Easy Run", f"{round(volume*0.2)} km Z2"),
+            ("Descanso", ""),
+            ("Long Run", f"{round(volume*0.45)} km Z2"),
+        ]
+
+    if fase == "build":
+        return [
+            ("Intervalos", "5x3min Z4"),
+            ("Easy Run", f"{round(volume*0.15)} km Z2"),
+            ("Tempo Run", "20min Z3"),
+            ("Descanso", ""),
+            ("Easy Run", f"{round(volume*0.2)} km Z2"),
+            ("Descanso", ""),
+            ("Long Run", f"{round(volume*0.5)} km Z2"),
+        ]
+
+    if fase == "peak":
+        return [
+            ("Intervalos", "VO2max"),
+            ("Easy Run", "Z2"),
+            ("Tempo Run", "Z3-Z4"),
+            ("Descanso", ""),
+            ("Easy Run", "Z2"),
+            ("Descanso", ""),
+            ("Long Run", "Simulação prova"),
+        ]
+
+    if fase == "taper":
+        return [
+            ("Easy Run", "curto Z2"),
+            ("Descanso", ""),
+            ("Tempo Run", "leve"),
+            ("Descanso", ""),
+            ("Easy Run", "curto"),
+            ("Descanso", ""),
+            ("Descanso", ""),
+        ]
+
+
+def gerar_descricao(tipo, detalhe):
+
+    return f"""
+🏃 {tipo}
+
+📋 Detalhe:
+{detalhe}
+
+🎯 Objetivo:
+Treino específico da fase
+
+⚠ Controlar esforço
 """
-        }
-
-    if tipo == "tempo":
-        return {
-            "tipo": "Tempo Run",
-            "cor": "yellow",
-            "descricao": """
-🏃 Tempo Run
-
-Aquecimento: 15 min Z2  
-Bloco: 20 min Z3-Z4  
-Cooldown: 10 min  
-
-🎯 Limiar anaeróbico
-"""
-        }
-
-    if tipo == "intervalo":
-        return {
-            "tipo": "Intervalos",
-            "cor": "red",
-            "descricao": """
-🏃 Intervalos
-
-Aquecimento: 15 min  
-6x (3min Z4 + 2min Z1)  
-Cooldown: 10 min  
-
-🎯 VO2max
-"""
-        }
-
-    if tipo == "longo":
-        dist = round(volume * 0.5, 1)
-        return {
-            "tipo": "Long Run",
-            "cor": "purple",
-            "descricao": f"""
-🏃 Long Run
-
-Distância: {dist} km  
-Zona: Z2  
-
-🎯 Resistência
-"""
-        }
-
-    return {
-        "tipo": "Descanso",
-        "cor": "gray",
-        "descricao": "Descanso total"
-    }
 
 
-def gerar_plano(conn, user_id, data_inicio, data_fim, volume=40):
+def gerar_plano_prova(data_inicio, data_prova, volume_inicial=40):
 
     plano = []
+    dias_totais = (data_prova - data_inicio).days
     d = data_inicio
+    dia_idx = 0
+    volume = volume_inicial
 
-    semana_tipos = ["easy", "intervalo", "easy", "tempo", "descanso", "easy", "longo"]
+    while d <= data_prova:
 
-    while d <= data_fim:
+        fase = definir_fase(dias_totais, dia_idx)
 
-        for tipo in semana_tipos:
+        semana = treino_por_fase(volume, fase)
 
-            treino = gerar_treino(volume, tipo)
+        for tipo, detalhe in semana:
 
             plano.append({
                 "data": d.strftime("%Y-%m-%d"),
-                "tipo": treino["tipo"],
-                "descricao": treino["descricao"],
-                "cor": treino["cor"]
+                "tipo": tipo,
+                "descricao": gerar_descricao(tipo, detalhe),
+                "fase": fase
             })
 
             d += timedelta(days=1)
+            dia_idx += 1
 
-        volume *= 1.03
+        # progressão
+        if fase in ["base", "build"]:
+            volume *= 1.05
+        elif fase == "peak":
+            volume *= 1.02
+        elif fase == "taper":
+            volume *= 0.85
 
     return plano
