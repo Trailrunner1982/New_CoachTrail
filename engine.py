@@ -146,3 +146,42 @@ def calcular_preparation(conn, user_id):
     prep = int((consistency * 0.4 + consistency * 0.3 + consistency * 0.3) * 100)
 
     return prep
+    from datetime import date
+
+
+def dias_para_prova(conn, user_id):
+
+    c = conn.cursor()
+
+    c.execute("""
+    SELECT date FROM race
+    WHERE user_id=?
+    ORDER BY date LIMIT 1
+    """, (user_id,))
+
+    row = c.fetchone()
+
+    if not row:
+        return None
+
+    prova = date.fromisoformat(row[0])
+    hoje = date.today()
+
+    return (prova - hoje).days
+
+
+def aplicar_taper(treino, dias_prova):
+
+    if dias_prova is None:
+        return treino
+
+    # taper leve
+    if dias_prova <= 14 and dias_prova > 7:
+        treino["duration"] = int(treino["duration"] * 0.8)
+
+    # taper forte
+    elif dias_prova <= 7:
+        treino["duration"] = int(treino["duration"] * 0.6)
+        treino["desc"] = "Treino leve + ativação"
+
+    return treino
