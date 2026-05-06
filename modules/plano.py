@@ -12,8 +12,8 @@ def render_plano(user_id):
     conn = get_conn()
     c = conn.cursor()
 
-    if st.button("Gerar Plano Adaptativo"):
-
+    # GERAR
+    if st.button("Gerar Plano Elite"):
         c.execute("DELETE FROM plano WHERE user_id=?", (user_id,))
         conn.commit()
 
@@ -26,10 +26,10 @@ def render_plano(user_id):
             """, (user_id, t["data"], t["tipo"], t["descricao"]))
 
         conn.commit()
-        st.success("Plano adaptativo criado")
+        st.success("Plano criado")
         st.rerun()
 
-    # VISUAL (mantém calendário anterior)
+    # LOAD
     c.execute("SELECT id, data, tipo, descricao, status FROM plano WHERE user_id=?", (user_id,))
     rows = c.fetchall()
 
@@ -39,20 +39,72 @@ def render_plano(user_id):
 
     df = pd.DataFrame(rows, columns=["id","data","tipo","descricao","status"])
     df["data"] = pd.to_datetime(df["data"])
+    df["week"] = df["data"].dt.isocalendar().week
 
-    for _, row in df.iterrows():
+    semanas = df["week"].unique()
 
-        with st.expander(f"{row['data'].date()} - {row['tipo']}"):
-            st.write(row["descricao"])
+    cores = {
+        "Easy Run": "green",
+        "Tempo Run": "yellow",
+        "Intervalos": "red",
+        "Long Run": "purple",
+        "Descanso": "gray"
+    }
 
-            col1, col2 = st.columns(2)
+    for semana in semanas:
 
-            if col1.button("Feito", key=f"f{row['id']}"):
-                c.execute("UPDATE plano SET status='feito' WHERE id=?", (row["id"],))
-                conn.commit()
-                st.rerun()
+        st.subheader(f"Semana {semana}")
 
-            if col2.button("Falhou", key=f"x{row['id']}"):
-                c.execute("UPDATE plano SET status='falhou' WHERE id=?", (row["id"],))
-                conn.commit()
-                st.rerun()
+        semana_df = df[df["week"] == semana]
+
+        cols = st.columns(7)
+
+        for i, (_, row) in enumerate(semana_df.iterrows()):
+
+            with cols[i % 7]:
+
+                cor = cores.get(row["tipo"], "blue")
+
+                st.markdown(f"""
+                <div style="
+                padding:10px;
+                border-radius:10px;
+                background-color:{cor};
+                color:white;
+                margin-bottom:5px;">
+                <b>{row['data'].day}</b><br>
+                {row['tipo']}
+                </div>
+                """, unsafe_allow_html=True)
+
+                if st.button("👁", key=f"v{row['id']}"):
+                    st.session_state["treino"] = row["id"]
+
+    # DETALHE
+    if "treino" in st.session_state:
+        tid = st.session_state["treino"]
+
+        c.execute("SELECT descricao FROM plano WHERE id=?", (tid,))
+        desc = c.fetchone()[0]
+
+        st.divider()
+        st.subheader("Detalhe do treino")
+        st.write(desc)
+
+        col1, col2, col3 = st.columns(3)
+
+        if col1.button("✔ Feito"):
+            c.execute("UPDATE plano SET status='feito' WHERE id=?", (tid,))
+            conn.commit()
+            st.rerun()
+
+        if col2.button("❌ Falhou"):
+            c.execute("UPDATE plano SET status='falhou' WHERE id=?", (tid,))
+            conn.commit()
+            st.rerun()
+
+        if col3.button("🔁 Replanear semana"):
+            c.execute("DELETE FROM plano WHERE user_id=?", (user_id,))
+            conn.commit()
+            st.success("Plano reset")
+            st.rerun()
