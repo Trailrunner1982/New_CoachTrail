@@ -10,35 +10,28 @@ def render_treino(user_id):
 
     dias_semana = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
 
-    dias = st.multiselect(
-        "Dias disponíveis",
-        dias_semana,
-        help="Seleciona os dias em que podes treinar"
-    )
+    dias = st.multiselect("Dias de treino", dias_semana)
 
-    dia_longo = st.selectbox("Dia do treino longo", dias if dias else dias_semana)
+    dia_longo = st.selectbox("Dia longo", dias_semana)
 
-    volume = st.number_input(
-        "Volume semanal (km)",
-        help="Quantos km costumas fazer por semana"
-    )
+    volume = st.number_input("Volume semanal (km)")
+    pace = st.number_input("Pace médio")
 
-    pace = st.number_input(
-        "Pace médio (min/km)",
-        help="Exemplo: 5.30 = 5min30/km"
-    )
-
-    st.subheader("Treino de Força")
-
-    forca = st.checkbox("Incluir treino de força")
+    forca = st.checkbox("Treino de força")
 
     forca_dias = []
     if forca:
-        forca_dias = st.multiselect(
-            "Dias de força",
-            dias_semana,
-            help="Podes escolher dias diferentes dos treinos"
-        )
+        forca_dias = st.multiselect("Dias força", dias_semana)
+
+    # 🔥 RESUMO VISUAL
+    st.info(f"""
+📌 Resumo:
+Dias: {dias}
+Longo: {dia_longo}
+Volume: {volume} km
+Pace: {pace}
+Força: {forca_dias}
+""")
 
     if st.button("Guardar", use_container_width=True):
         c.execute("""
