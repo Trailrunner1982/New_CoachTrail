@@ -10,16 +10,19 @@ def render_perfil(user_id):
     conn = get_conn()
     c = conn.cursor()
 
-    # =====================
-    # DADOS BASE
-    # =====================
-    st.subheader("Dados Pessoais")
-
     c.execute("SELECT * FROM perfil WHERE user_id=?", (user_id,))
     data = c.fetchone()
 
+    st.subheader("Dados Pessoais")
+
     nome = st.text_input("Nome", value=data[1] if data else "")
-    nascimento = st.date_input("Data nascimento")
+
+    nascimento = st.date_input(
+        "Data nascimento",
+        max_value=date.today(),
+        help="Seleciona a tua data real de nascimento"
+    )
+
     altura = st.number_input("Altura (cm)", value=data[3] if data else 170)
 
     if st.button("Guardar Perfil", use_container_width=True):
@@ -30,13 +33,12 @@ def render_perfil(user_id):
         conn.commit()
         st.success("Guardado")
 
-    # =====================
     # PESO
-    # =====================
     st.divider()
     st.subheader("Peso")
 
-    peso = st.number_input("Peso atual (kg)")
+    peso = st.number_input("Peso atual (kg)", help="Regista regularmente para acompanhar evolução")
+
     if st.button("Registar Peso", use_container_width=True):
         c.execute("""
         INSERT INTO peso (user_id, data, peso)
@@ -45,11 +47,12 @@ def render_perfil(user_id):
         conn.commit()
         st.success("Registado")
 
-    # HISTÓRICO
     c.execute("SELECT data, peso FROM peso WHERE user_id=?", (user_id,))
     rows = c.fetchall()
 
     if rows:
         df = pd.DataFrame(rows, columns=["Data", "Peso"])
         df["Data"] = pd.to_datetime(df["Data"])
+
         st.line_chart(df.set_index("Data"))
+        st.dataframe(df)
