@@ -1,23 +1,37 @@
 import streamlit as st
 from database import get_conn
-from treino_engine import gerar_plano
+from treino_engine import gerar_plano_prova
 from datetime import date
 import pandas as pd
 
 
 def render_plano(user_id):
 
-    st.title("Plano de Treino")
+    st.title("Plano de Treino (Periodizado)")
 
     conn = get_conn()
     c = conn.cursor()
 
-    # GERAR
-    if st.button("Gerar Plano Elite"):
+    # buscar prova A
+    c.execute("""
+    SELECT data FROM objetivos
+    WHERE user_id=? AND prioridade='A'
+    ORDER BY data LIMIT 1
+    """, (user_id,))
+    obj = c.fetchone()
+
+    if not obj:
+        st.warning("Define uma prova prioridade A")
+        return
+
+    data_prova = date.fromisoformat(obj[0])
+
+    if st.button("Gerar Plano Completo"):
+
         c.execute("DELETE FROM plano WHERE user_id=?", (user_id,))
         conn.commit()
 
-        plano = gerar_plano(conn, user_id, date.today(), date.today().replace(month=12))
+        plano = gerar_plano_prova(date.today(), data_prova)
 
         for t in plano:
             c.execute("""
@@ -26,7 +40,7 @@ def render_plano(user_id):
             """, (user_id, t["data"], t["tipo"], t["descricao"]))
 
         conn.commit()
-        st.success("Plano criado")
+        st.success("Plano estruturado criado")
         st.rerun()
 
     # LOAD
@@ -34,24 +48,14 @@ def render_plano(user_id):
     rows = c.fetchall()
 
     if not rows:
-        st.warning("Sem plano")
+        st.info("Sem plano ainda")
         return
 
     df = pd.DataFrame(rows, columns=["id","data","tipo","descricao","status"])
     df["data"] = pd.to_datetime(df["data"])
     df["week"] = df["data"].dt.isocalendar().week
 
-    semanas = df["week"].unique()
-
-    cores = {
-        "Easy Run": "green",
-        "Tempo Run": "yellow",
-        "Intervalos": "red",
-        "Long Run": "purple",
-        "Descanso": "gray"
-    }
-
-    for semana in semanas:
+    for semana in df["week"].unique():
 
         st.subheader(f"Semana {semana}")
 
@@ -63,48 +67,27 @@ def render_plano(user_id):
 
             with cols[i % 7]:
 
-                cor = cores.get(row["tipo"], "blue")
-
                 st.markdown(f"""
                 <div style="
                 padding:10px;
                 border-radius:10px;
-                background-color:{cor};
-                color:white;
-                margin-bottom:5px;">
+                background:#2b5da8;
+                color:white;">
                 <b>{row['data'].day}</b><br>
                 {row['tipo']}
                 </div>
                 """, unsafe_allow_html=True)
 
-                if st.button("👁", key=f"v{row['id']}"):
+                if st.button("👁", key=f"{row['id']}"):
                     st.session_state["treino"] = row["id"]
 
-    # DETALHE
     if "treino" in st.session_state:
+
         tid = st.session_state["treino"]
 
         c.execute("SELECT descricao FROM plano WHERE id=?", (tid,))
         desc = c.fetchone()[0]
 
         st.divider()
-        st.subheader("Detalhe do treino")
+        st.subheader("Detalhe")
         st.write(desc)
-
-        col1, col2, col3 = st.columns(3)
-
-        if col1.button("✔ Feito"):
-            c.execute("UPDATE plano SET status='feito' WHERE id=?", (tid,))
-            conn.commit()
-            st.rerun()
-
-        if col2.button("❌ Falhou"):
-            c.execute("UPDATE plano SET status='falhou' WHERE id=?", (tid,))
-            conn.commit()
-            st.rerun()
-
-        if col3.button("🔁 Replanear semana"):
-            c.execute("DELETE FROM plano WHERE user_id=?", (user_id,))
-            conn.commit()
-            st.success("Plano reset")
-            st.rerun()
