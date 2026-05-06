@@ -74,17 +74,20 @@ def init_db():
     """)
 
     # OBJETIVOS
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS objetivos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        nome TEXT,
-        data TEXT,
-        distancia REAL,
-        altimetria REAL,
-        prioridade TEXT
-    )
-    """)
+   c.execute("""
+CREATE TABLE IF NOT EXISTS objetivos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    nome TEXT,
+    tipo TEXT,
+    data TEXT,
+    distancia REAL,
+    altimetria REAL,
+    tempo_alvo TEXT,
+    terminar INTEGER,
+    prioridade TEXT
+)
+""")
 
     # PLANO
     c.execute("""
