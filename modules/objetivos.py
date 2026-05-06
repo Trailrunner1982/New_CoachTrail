@@ -1,61 +1,105 @@
 import streamlit as st
 from database import get_conn
+from datetime import date
 import pandas as pd
 
 
 def render_objetivos(user_id):
-    st.title("Objetivos")
+
+    st.title("Objetivos & Provas")
 
     conn = get_conn()
     c = conn.cursor()
 
-    tipo = st.radio("Tipo de objetivo", ["Prova", "Objetivo Livre"])
+    # =========================
+    # TIPO DE OBJETIVO
+    # =========================
+    tipo = st.radio("Tipo", ["Prova", "Objetivo Pessoal"])
+
+    nome = st.text_input("Nome")
+
+    data_obj = st.date_input("Data", value=date.today())
+
+    prioridade = st.selectbox("Prioridade", ["A", "B", "C"])
+
+    distancia = st.number_input("Distância (km)", step=0.1)
+
+    altimetria = st.number_input("Altimetria D+")
+
+    # =========================
+    # ESPECÍFICO PROVA
+    # =========================
+    tempo_obj = None
+    terminar = False
 
     if tipo == "Prova":
 
-        nome = st.text_input("Nome da prova")
-        data = st.date_input("Data")
-        dist = st.number_input("Distância (km)")
-        dplus = st.number_input("D+")
+        terminar = st.checkbox("Apenas finalizar")
 
-        modo = st.radio("Objetivo", ["Finalizar", "Tempo alvo"])
+        if not terminar:
+            tempo_obj = st.text_input("Tempo alvo (HH:MM:SS)")
 
-        tempo = None
-        if modo == "Tempo alvo":
-            tempo = st.text_input("Tempo (HH:MM)")
+    # =========================
+    # GUARDAR
+    # =========================
+    if st.button("Guardar Objetivo"):
 
-        prioridade = st.selectbox("Prioridade", ["A", "B", "C"])
+        if not nome:
+            st.error("Nome obrigatório")
+            return
 
-        if st.button("Adicionar Prova", use_container_width=True):
-            c.execute("""
-            INSERT INTO objetivos
-            (user_id, nome, data, distancia, dplus, tempo, prioridade)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (user_id, nome, str(data), dist, dplus, tempo, prioridade))
-            conn.commit()
-            st.success("Adicionado")
+        c.execute("""
+        INSERT INTO objetivos
+        (user_id, nome, data, distancia, altimetria, prioridade)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """, (
+            user_id,
+            nome,
+            data_obj.isoformat(),
+            distancia,
+            altimetria,
+            prioridade
+        ))
 
-    else:
-        dist = st.number_input("Distância (km)")
-        tempo = st.text_input("Tempo alvo (HH:MM)")
-        data = st.date_input("Data")
-
-        if st.button("Adicionar Objetivo", use_container_width=True):
-            c.execute("""
-            INSERT INTO objetivos
-            (user_id, nome, data, distancia, tempo, prioridade)
-            VALUES (?, ?, ?, ?, ?, ?)
-            """, (user_id, "Objetivo Livre", str(data), dist, tempo, "A"))
-            conn.commit()
-            st.success("Adicionado")
+        conn.commit()
+        st.success("Guardado")
 
     st.divider()
 
-    st.subheader("Tabela de Objetivos")
+    # =========================
+    # LISTAGEM
+    # =========================
+    st.subheader("Objetivos definidos")
 
-    c.execute("SELECT nome, data, distancia, dplus, tempo, prioridade FROM objetivos WHERE user_id=?", (user_id,))
+    c.execute("""
+    SELECT id, nome, data, distancia, altimetria, prioridade
+    FROM objetivos
+    WHERE user_id=?
+    ORDER BY data
+    """, (user_id,))
+
     rows = c.fetchall()
 
     if rows:
-        df = pd.DataFrame(rows, columns=["Nome", "Data", "Distância", "D+", "Tempo", "Prioridade"])
+
+        df = pd.DataFrame(rows, columns=[
+            "ID","Nome","Data","Distância","D+","Prioridade"
+        ])
+
         st.dataframe(df, use_container_width=True)
+
+        # =========================
+        # DELETE
+        # =========================
+        ids = df["ID"].tolist()
+
+        del_id = st.selectbox("Remover objetivo", ids)
+
+        if st.button("Eliminar"):
+            c.execute("DELETE FROM objetivos WHERE id=?", (del_id,))
+            conn.commit()
+            st.success("Removido")
+            st.rerun()
+
+    else:
+        st.info("Sem objetivos ainda")
