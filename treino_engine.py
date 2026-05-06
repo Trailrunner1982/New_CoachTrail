@@ -1,135 +1,101 @@
 from datetime import timedelta
+import random
 
 
-def analisar_estado(conn, user_id):
+def gerar_treino(volume, tipo):
 
-    c = conn.cursor()
+    if tipo == "easy":
+        dist = round(volume * 0.15, 1)
+        return {
+            "tipo": "Easy Run",
+            "cor": "green",
+            "descricao": f"""
+🏃 Easy Run
 
-    # Consistência
-    c.execute("SELECT COUNT(*) FROM plano WHERE user_id=?", (user_id,))
-    total = c.fetchone()[0]
+Distância: {dist} km  
+Duração: {dist*6:.0f} min  
+Pace: confortável  
 
-    c.execute("SELECT COUNT(*) FROM plano WHERE user_id=? AND status='feito'", (user_id,))
-    feitos = c.fetchone()[0]
+Zona: Z2  
 
-    consistencia = feitos / total if total > 0 else 0
-
-    # Métricas (últimos 7 dias)
-    c.execute("""
-    SELECT AVG(hrv), AVG(rhr)
-    FROM metricas
-    WHERE user_id=?
-    ORDER BY data DESC LIMIT 7
-    """, (user_id,))
-    m = c.fetchone()
-
-    hrv = m[0] if m[0] else 50
-    rhr = m[1] if m[1] else 60
-
-    # Falhas
-    c.execute("""
-    SELECT COUNT(*) FROM plano
-    WHERE user_id=? AND status='falhou'
-    """, (user_id,))
-    falhas = c.fetchone()[0]
-
-    return consistencia, hrv, rhr, falhas
-
-
-def ajustar_volume(volume, consistencia):
-    if consistencia > 0.8:
-        return volume * 1.05
-    elif consistencia < 0.5:
-        return volume * 0.9
-    return volume
-
-
-def gerar_semana(volume, intensidade_reduzida=False):
-
-    semana = []
-
-    semana.append({
-        "tipo": "Endurance",
-        "desc": f"""
-🏃 Endurance
-
-Distância: {round(volume*0.2)} km
-Zona: Z2
-
-🎯 Base aeróbica
+🎯 Recuperação ativa
 """
-    })
+        }
 
-    if intensidade_reduzida:
-        semana.append({
-            "tipo": "Recuperação",
-            "desc": """
-🏃 Recuperação
+    if tipo == "tempo":
+        return {
+            "tipo": "Tempo Run",
+            "cor": "yellow",
+            "descricao": """
+🏃 Tempo Run
 
-Zona: Z1
+Aquecimento: 15 min Z2  
+Bloco: 20 min Z3-Z4  
+Cooldown: 10 min  
 
-🎯 Regeneração
+🎯 Limiar anaeróbico
 """
-        })
-    else:
-        semana.append({
-            "tipo": "Intervalado",
-            "desc": """
-🏃 Intervalado
+        }
 
-5x(3min Z4 + 2min Z1)
+    if tipo == "intervalo":
+        return {
+            "tipo": "Intervalos",
+            "cor": "red",
+            "descricao": """
+🏃 Intervalos
+
+Aquecimento: 15 min  
+6x (3min Z4 + 2min Z1)  
+Cooldown: 10 min  
 
 🎯 VO2max
 """
-        })
+        }
 
-    semana.append({
-        "tipo": "Longo",
-        "desc": f"""
-🏃 Longo
+    if tipo == "longo":
+        dist = round(volume * 0.5, 1)
+        return {
+            "tipo": "Long Run",
+            "cor": "purple",
+            "descricao": f"""
+🏃 Long Run
 
-Distância: {round(volume*0.5)} km
-Zona: Z2
+Distância: {dist} km  
+Zona: Z2  
 
 🎯 Resistência
 """
-    })
+        }
 
-    return semana
+    return {
+        "tipo": "Descanso",
+        "cor": "gray",
+        "descricao": "Descanso total"
+    }
 
 
-def gerar_plano(conn, user_id, data_inicio, data_fim, volume_inicial=40):
-
-    consistencia, hrv, rhr, falhas = analisar_estado(conn, user_id)
-
-    volume = ajustar_volume(volume_inicial, consistencia)
-
-    intensidade_reduzida = False
-
-    if hrv < 45 or rhr > 65:
-        intensidade_reduzida = True
-
-    if falhas >= 3:
-        intensidade_reduzida = True
-        volume *= 0.8
+def gerar_plano(conn, user_id, data_inicio, data_fim, volume=40):
 
     plano = []
     d = data_inicio
 
+    semana_tipos = ["easy", "intervalo", "easy", "tempo", "descanso", "easy", "longo"]
+
     while d <= data_fim:
 
-        semana = gerar_semana(volume, intensidade_reduzida)
+        for tipo in semana_tipos:
 
-        for treino in semana:
+            treino = gerar_treino(volume, tipo)
 
             plano.append({
                 "data": d.strftime("%Y-%m-%d"),
                 "tipo": treino["tipo"],
-                "descricao": treino["desc"]
+                "descricao": treino["descricao"],
+                "cor": treino["cor"]
             })
 
             d += timedelta(days=1)
 
-        volume *= 1.02  # progressão leve
+        volume *= 1.03
 
     return plano
