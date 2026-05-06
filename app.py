@@ -15,12 +15,45 @@ from modules.admin import render_admin
 
 
 # =========================
-# INIT
+# CONFIG
 # =========================
 st.set_page_config(
     page_title="UltraCoach",
-    layout="centered"  # mobile friendly
+    layout="centered"
 )
+
+# 🎨 GLOBAL STYLE (MOBILE + CORES)
+st.markdown("""
+<style>
+.block-container {
+    padding-top: 1rem;
+    padding-bottom: 2rem;
+}
+
+/* BOTÕES */
+.stButton>button {
+    width: 100%;
+    border-radius: 12px;
+    height: 48px;
+    font-size: 16px;
+}
+
+/* CARDS */
+.card {
+    padding: 12px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    color: white;
+}
+
+/* CORES */
+.green {background-color:#1e7f4f;}
+.red {background-color:#a83232;}
+.blue {background-color:#2b5da8;}
+.yellow {background-color:#b59b2a;}
+.gray {background-color:#444;}
+</style>
+""", unsafe_allow_html=True)
 
 init_db()
 
@@ -42,9 +75,10 @@ role = st.session_state["role"]
 
 
 # =========================
-# SIDEBAR (SÓ APÓS LOGIN)
+# SIDEBAR
 # =========================
 with st.sidebar:
+
     st.title("UltraCoach")
 
     if role == "admin":
@@ -62,7 +96,8 @@ with st.sidebar:
         ])
 
     st.divider()
-    if st.button("Logout", use_container_width=True):
+
+    if st.button("Logout"):
         logout()
 
 
